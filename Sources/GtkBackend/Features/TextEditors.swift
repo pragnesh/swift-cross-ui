@@ -19,9 +19,11 @@ extension GtkBackend: BackendFeatures.TextEditors {
             onChange(buffer.text)
         }
 
-        textEditor.css.clear()
-        textEditor.css.set(properties: Self.cssProperties(for: environment, isControl: false))
-        textEditor.css.set(property: CSSProperty(key: "background", value: "none"))
+        textEditor.css.set(
+            properties: Self.cssProperties(for: environment, isControl: false)
+                + [CSSProperty(key: "background", value: "none")],
+            clear: true
+        )
     }
 
     public func setContent(ofTextEditor textEditor: Widget, to content: String) {
