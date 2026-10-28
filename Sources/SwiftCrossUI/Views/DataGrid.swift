@@ -4,10 +4,41 @@ public struct DataGridColumn: Hashable, Sendable {
     public var title: String
     /// The column's initial width (the user can resize it).
     public var width: Int
+    /// How cell text is aligned (e.g. `.trailing` for numbers).
+    public var alignment: HorizontalAlignment
 
-    public init(_ title: String, width: Int = 120) {
+    public init(_ title: String, width: Int = 120, alignment: HorizontalAlignment = .leading) {
         self.title = title
         self.width = width
+        self.alignment = alignment
+    }
+}
+
+/// The order a ``DataGrid`` is sorted by.
+public struct DataGridSort: Hashable, Sendable {
+    public var column: Int
+    public var ascending: Bool
+
+    public init(column: Int, ascending: Bool) {
+        self.column = column
+        self.ascending = ascending
+    }
+}
+
+/// What a ``DataGrid`` asks to copy.
+public struct DataGridCopyRequest: Hashable, Sendable {
+    /// The index into the grid's copy commands, or `nil` for the keyboard
+    /// shortcut (Ctrl+C).
+    public var command: Int?
+    /// The selected rows, ascending.
+    public var rows: [Int]
+    /// The column that was right-clicked (`nil` for the keyboard shortcut).
+    public var column: Int?
+
+    public init(command: Int?, rows: [Int], column: Int?) {
+        self.command = command
+        self.rows = rows
+        self.column = column
     }
 }
 
@@ -23,6 +54,10 @@ public struct DataGrid: ElementaryView {
     var columns: [DataGridColumn]
     var rowCount: Int
     var contentRevision: Int
+    var sort: DataGridSort?
+    var onSort: (@MainActor (DataGridSort) -> Void)?
+    var copyCommands: [String]
+    var onCopy: (@MainActor (DataGridCopyRequest) -> String?)?
     var cell: @MainActor (_ row: Int, _ column: Int) -> String?
 
     /// Creates a data grid.
@@ -32,17 +67,33 @@ public struct DataGrid: ElementaryView {
     ///   - rowCount: The number of rows.
     ///   - contentRevision: Change this whenever the cell contents change
     ///     (e.g. a new query result), so displayed cells are refreshed.
+    ///   - sort: The order the rows are in, shown in the column headers.
+    ///   - onSort: Called when the user clicks a column header to sort. The
+    ///     grid doesn't reorder rows itself: provide sorted content (and the
+    ///     new `sort`). Headers aren't clickable without it.
+    ///   - copyCommands: Titles for the cells' right-click menu.
+    ///   - onCopy: Returns the text to put on the clipboard for a copy
+    ///     command (or Ctrl+C) applied to the selected rows. Rows can be
+    ///     selected with Shift/Ctrl-click; without `onCopy` nothing is copied.
     ///   - cell: The text of the cell at `row`, `column`, or `nil` for a null
     ///     value (displayed dimmed as "NULL").
     public init(
         columns: [DataGridColumn],
         rowCount: Int,
         contentRevision: Int,
+        sort: DataGridSort? = nil,
+        onSort: (@MainActor (DataGridSort) -> Void)? = nil,
+        copyCommands: [String] = [],
+        onCopy: (@MainActor (DataGridCopyRequest) -> String?)? = nil,
         cell: @escaping @MainActor (_ row: Int, _ column: Int) -> String?
     ) {
         self.columns = columns
         self.rowCount = rowCount
         self.contentRevision = contentRevision
+        self.sort = sort
+        self.onSort = onSort
+        self.copyCommands = copyCommands
+        self.onCopy = onCopy
         self.cell = cell
     }
 
@@ -74,6 +125,10 @@ public struct DataGrid: ElementaryView {
             columns: columns,
             rowCount: rowCount,
             contentRevision: contentRevision,
+            sort: sort,
+            onSort: onSort,
+            copyCommands: copyCommands,
+            onCopy: onCopy,
             cell: cell,
             environment: environment
         )
