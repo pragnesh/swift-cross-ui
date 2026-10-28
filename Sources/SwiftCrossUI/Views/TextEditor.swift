@@ -2,12 +2,29 @@
 public struct TextEditor: ElementaryView {
     /// The editor's content.
     @Binding var text: String
+    /// Called on Ctrl+Enter (Cmd+Return) instead of inserting a line break.
+    var onCommandReturn: (@MainActor (TextEditorSubmission) -> Void)?
 
     /// Creates a text editor.
     ///
     /// - Parameter text: The editor's content.
     public init(text: Binding<String>) {
         _text = text
+    }
+
+    /// Creates a text editor that calls `onCommandReturn` when Ctrl+Enter
+    /// (Cmd+Return) is pressed, instead of inserting a line break. Supported
+    /// by backends that implement ``BackendFeatures/TextEditorSubmitting``.
+    ///
+    /// - Parameters:
+    ///   - text: The editor's content.
+    ///   - onCommandReturn: Receives the text, selection and cursor.
+    public init(
+        text: Binding<String>,
+        onCommandReturn: @escaping @MainActor (TextEditorSubmission) -> Void
+    ) {
+        _text = text
+        self.onCommandReturn = onCommandReturn
     }
 
     func asWidget<Backend: BaseAppBackend>(backend: Backend) -> Backend.Widget {
@@ -85,6 +102,16 @@ public struct TextEditor: ElementaryView {
             backend.setContent(ofTextEditor: widget, to: content)
         }
 
+        if let backend = backend as? any BackendFeatures.TextEditorSubmitting {
+            setSubmitHandler(of: widget, backend: backend)
+        }
+
         backend.setSize(of: widget, to: layout.size.vector)
+    }
+
+    private func setSubmitHandler<Backend: BackendFeatures.TextEditorSubmitting>(
+        of widget: Any, backend: Backend
+    ) {
+        backend.setSubmitHandler(ofTextEditor: widget as! Backend.Widget, to: onCommandReturn)
     }
 }
