@@ -51,6 +51,10 @@ extension GtkBackend: BackendFeatures.Pickers {
             return
         }
 
+        // Replacing the model makes GTK emit notify::selected. Detach the
+        // handler first: the old one maps indices into the *old* options,
+        // and an index from the new model can be out of range there.
+        picker.notifySelected = nil
         picker.model = gtk_string_list_new(
             UnsafePointer(
                 options
