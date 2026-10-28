@@ -4,7 +4,19 @@ G_DEFINE_FINAL_TYPE(GtkCustomRootWidget, gtk_custom_root_widget, GTK_TYPE_WIDGET
 
 static void gtk_custom_root_widget_init(GtkCustomRootWidget *self) {}
 
+/// GTK 4 widgets must unparent their children when disposed; otherwise
+/// finalizing the widget warns "still has children left".
+static void gtk_custom_root_widget_dispose(GObject *object) {
+    GtkCustomRootWidget *self = GTK_CUSTOM_ROOT_WIDGET(object);
+    if (self->child != NULL) {
+        gtk_widget_unparent(self->child);
+        self->child = NULL;
+    }
+    G_OBJECT_CLASS(gtk_custom_root_widget_parent_class)->dispose(object);
+}
+
 static void gtk_custom_root_widget_class_init(GtkCustomRootWidgetClass *klass) {
+    G_OBJECT_CLASS(klass)->dispose = gtk_custom_root_widget_dispose;
     GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
     widget_class->measure = gtk_custom_root_widget_measure;
     widget_class->size_allocate = gtk_custom_root_widget_allocate;
@@ -44,7 +56,9 @@ void gtk_custom_root_widget_allocate(
     int baseline
 ) {
     GtkCustomRootWidget *root_widget = GTK_CUSTOM_ROOT_WIDGET(widget);
-    gtk_widget_allocate(root_widget->child, width, height, 0, NULL);
+    if (root_widget->child != NULL) {
+        gtk_widget_allocate(root_widget->child, width, height, 0, NULL);
+    }
 
     root_widget->has_been_allocated = true;
 
@@ -76,6 +90,9 @@ GtkWidget *gtk_custom_root_widget_new(void) {
 }
 
 void gtk_custom_root_widget_set_child(GtkCustomRootWidget *self, GtkWidget *child) {
+    if (self->child != NULL) {
+        gtk_widget_unparent(self->child);
+    }
     self->child = child;
     gtk_widget_set_parent(child, GTK_WIDGET(self));
 }
