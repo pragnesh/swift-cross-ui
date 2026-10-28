@@ -15,8 +15,15 @@ extension PickerStyle where Self: _BuiltinPickerStyle {
             options: options.map { "\($0)" },
             selectedIndex: Binding {
                 selection.wrappedValue.flatMap(options.firstIndex(of:))
-            } set: {
-                selection.wrappedValue = $0.map { options[$0] }
+            } set: { index in
+                guard let index else {
+                    selection.wrappedValue = nil
+                    return
+                }
+                // Backends can report an index while their options are being
+                // replaced; ignore one that doesn't fit these options.
+                guard options.indices.contains(index) else { return }
+                selection.wrappedValue = options[index]
             }
         )
     }
