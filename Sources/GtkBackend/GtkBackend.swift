@@ -29,6 +29,9 @@ public final class GtkBackend {
 
     var measurementCustomLabel: CustomLabel!
 
+    /// See ``TextSizeCache``.
+    var textSizeCache = TextSizeCache()
+
     var borderedButtonPadding: SIMD2<Int>?
 
     // A separate initializer to satisfy `BackendFeatures.Core`'s requirements.
