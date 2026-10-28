@@ -49,16 +49,17 @@ private let sortDataGrid: GtkDataGridSortFunc = { context, column, ascending in
 
 /// Asks the grid's copy handler for the text to copy (malloc'd for C).
 private let copyFromDataGrid: GtkDataGridCopyFunc = { context, command, rows, rowCount, column in
-    MainActor.assumeIsolated {
-        guard let context else { return nil }
+    guard let context else { return nil }
+    let request = DataGridCopyRequest(
+        command: command >= 0 ? Int(command) : nil,
+        rows: (0..<Int(rowCount)).map { Int(rows![$0]) },
+        column: column >= 0 ? Int(column) : nil
+    )
+    let text: String? = MainActor.assumeIsolated {
         let source = Unmanaged<DataGridSource>.fromOpaque(context).takeUnretainedValue()
-        let request = DataGridCopyRequest(
-            command: command >= 0 ? Int(command) : nil,
-            rows: (0..<Int(rowCount)).map { Int(rows![$0]) },
-            column: column >= 0 ? Int(column) : nil
-        )
-        return source.onCopy?(request).flatMap { strdup($0) }
+        return source.onCopy?(request)
     }
+    return text.flatMap { strdup($0) }
 }
 
 extension GtkBackend: BackendFeatures.DataGrids {
