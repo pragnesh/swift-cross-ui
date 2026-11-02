@@ -45,6 +45,8 @@ extension GtkBackend: BackendFeatures.TextViews {
         proposedHeight: Int?,
         environment: EnvironmentValues
     ) -> SIMD2<Int> {
+        // Measure a text editor's text with its text view's font.
+        let widget = (widget as? TextEditorWidget)?.textView ?? widget
         let ellipsize: EllipsizeMode
         if let widget = widget as? CustomLabel {
             ellipsize = widget.ellipsize

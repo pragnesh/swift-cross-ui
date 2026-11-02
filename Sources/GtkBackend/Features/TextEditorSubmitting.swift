@@ -66,7 +66,7 @@ extension GtkBackend: BackendFeatures.TextEditorSubmitting {
         ofTextEditor textEditor: Widget,
         to action: (@MainActor (TextEditorSubmission) -> Void)?
     ) {
-        let textView = textEditor as! Gtk.TextView
+        let textView = (textEditor as! TextEditorWidget).textView
         let view = textView.widgetPointer.withMemoryRebound(to: GtkTextView.self, capacity: 1) { $0 }
         guard let action else {
             if submitBoxes.removeValue(forKey: ObjectIdentifier(textView)) != nil {
